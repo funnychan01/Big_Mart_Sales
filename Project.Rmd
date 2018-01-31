@@ -10,7 +10,7 @@ editor_options:
 ```{r setup, include=FALSE}
 library(knitr)
 knitr::opts_chunk$set(echo = F, warning = F, message = F, cache = T, 
-                      fig.width = 8, fig.height = 6, fig.align = "center")
+                      fig.width = 7, fig.height = 6, fig.align = "center")
 ```
 
 # Content
@@ -21,10 +21,8 @@ knitr::opts_chunk$set(echo = F, warning = F, message = F, cache = T,
 ######1.4 Basic Summary of the Dataset
 
 #####2.Exploratory Data Analysis
-######2.1 Item Sales in term of
-######2.2 Item Sales in term of
-######2.3 Item Sales in term of
-######2.4 Item Sales in term of
+######2.1 Item Sales Distribution
+######2.2 Follow-up analysis
 
 #####3.Insights & Conclusion
 
@@ -55,6 +53,12 @@ martdataset_test <- read.csv("Test_u94Q5KV.csv")
 library(tidyverse)
 library(gridExtra)
 library(hexbin)
+```
+
+```{r Create Function}
+reorder_size <- function(x) {
+  factor(x, levels = names(sort(table(x))))
+}
 ```
 
 ###1.3 Data Preparation
@@ -132,12 +136,12 @@ Let's begin our data analysis by asking a question regarding to the item sales.
 ```{r distribution of item sales}
 figure1a <- martdataset_train %>% 
         ggplot(aes(x = Item_Outlet_Sales)) +
-        geom_histogram(binwidth = 500, color = "white") +
+        geom_histogram(binwidth = 200, color = "white") +
         xlab("Item Sales") +
         ggtitle("Fig.1a The Distribution of Item Sales")
 figure1b <- martdataset_train %>% 
         ggplot(aes(x = Item_Outlet_Sales)) +
-        geom_histogram(binwidth = 500, color = "white") +
+        geom_histogram(binwidth = 200, color = "white") +
         coord_cartesian(ylim = c(0, 25)) + 
         xlab("Item Sales") +
         ggtitle("Fig.1b Zoom in the y-axis of the Distribution of Item Sales")
@@ -146,9 +150,7 @@ grid.arrange(figure1a, figure1b)
 
 * The overall distribution of item sales is right skewed
 * More low item sales than high item sales
-* The first bin (-250 to 250) is dramatically lower than the second bin
-* The second bin (250 to 750) contains the highest in count of item sales
-* Outliers of item sales are found, which are beyond 7500
+* Outliers of item sales are found, which are beyond 100,00
 * Those outliers, though have little in count, contain higher item sales
 
 The above points will be addressed one by one. So...
@@ -175,7 +177,9 @@ figure1e <- martdataset_train %>%
 grid.arrange(figure1c, figure1d, figure1e)
 ```
 
-From the above three plots, one of them is also right-skewed in distribution and is similar to the distribution of item sales, i.e. item visibility. Does that imply the correlation between item visibility and item sales? Let's assume the higher the visibility, the higher the sales. 
+* From the above three plots, one of them is also right-skewed in distribution and is similar to the distribution of item sales, i.e. item visibility. 
+* Does that imply the correlation between item visibility and item sales? 
+* Let's assume the higher the visibility, the higher the sales. 
 
 ```{r visibility vs sales}
 figure1f <- martdataset_train %>% 
@@ -195,23 +199,26 @@ figure1g <- martdataset_train %>%
 grid.arrange(figure1f, figure1g, ncol = 1)
 ```
 
-Fig.1f and 1g shows a quite counterintuitive result of their relationship. Most of the items clustter at the bottom left, meaning less visible and less sales. Also, items with visibility less than 0.1 have achieved sales up to 10000. Yet, items with visibility greater than 0.2 only have sales less than 1000, though the items fall in this clustter are less in count. Maybe there are some hidden facts behind the scene. We will go into depth in the later session. 
-
-* Follow-up 1 - Fig.1f: The clustter of item visibility
+* Fig.1f and 1g shows a quite counterintuitive result of their relationship. 
+* Most of the items cluster at the bottom left, meaning less visible and less sales. 
+* Items with visibility less than 0.1 have achieved sales up to 10000. 
+* Yet, items with visibility greater than 0.2 only have sales less than 1000, though the items fall in this cluster are less in count. 
+* Maybe there are some hidden facts behind the scene. We will go into depth in the later session. 
+* Follow-up analysis 1 - Fig.1f: The cluster of item visibility
 
 How about the relationship between item sales and retail price? Will that be the higher in retail price, the higer in item sales?
 
 ```{r sales vs retail price}
 figure1h <- martdataset_train %>% 
         ggplot(aes(y = Item_Outlet_Sales, x = Item_MRP)) +
-        geom_point(alpha = 0.1, color = "blue", fill = "skyblue") +
+        geom_point(alpha = 0.07) +
         geom_smooth(color = "red") +
         xlab("Item Maximum Retail Price") +
         ylab("Item Sales") +
         ggtitle("Fig.1h The Relationship between Item Sales and Item Retail Price")
 figure1i <- martdataset_train %>% 
         ggplot(aes(y = Item_Outlet_Sales, x = cut_width(Item_MRP, 50))) +
-        geom_jitter(alpha = 0.1, color = "blue", fill = "skyblue") +
+        geom_jitter(alpha = 0.07) +
         geom_boxplot(varwidth = T, show.legend = F,aes(color = cut_width(Item_MRP, 50)))+
         xlab("Item Maximum Retail Price") +
         ylab("Item Sales") +
@@ -219,9 +226,15 @@ figure1i <- martdataset_train %>%
 grid.arrange(figure1h, figure1i)
 ```
 
-There's a distribution pattern in Fig.1h. The retail price divides into 4 clustters with a obvious boundary between each clustters. Also, the plot confirms our assumption about the relationship between these two variables. Item sales increase as retail pice increases. Fig.1i show that the variation increases as the retail price increases. We may wonder such different variations were due to some reasons, such as different product types, different stores strategies, etc. Thus, further investigation has to be conducted. In short, item's maximum retail price might be a strong predictive in the model predicting item sales.
-
-* Follow-up 2 - Fig.1h: The clustter of item retail price
+* There's a distribution pattern in Fig.1h. 
+* The retail price divides into 4 clusters with a obvious boundary between each clusters. 
+* The plot confirms our assumption about the relationship between these two variables. 
+* Item sales increase as retail pice increases. 
+* Fig.1i show that the variation increases as the retail price increases. 
+* We may wonder such different variations were due to some reasons, such as different product types, different stores strategies, etc. 
+* Thus, further investigation has to be conducted. 
+* In short, item's maximum retail price might be a strong predictive in the model predicting item sales.
+* Follow-up analysis 2 - Fig.1h: The cluster of item retail price
 
 Up to here, we have not yet found out the reason of the right-skewed distribution of item sales. Let's check the relationship between item weight and item sales.
 
@@ -235,9 +248,11 @@ figure1j <- martdataset_train %>%
 grid.arrange(figure1j, figure1c)
 ```
 
-Fig.1c and 1j shows a strange pattern in the plots. There's a darker vertical line at the middle of both plots. Excluding this fact, the relationship between sales and weight is not obvious. For that mentioned vertical line, we have to investigate further.
-
-* Follow-up 3 - Fig.1c: Strange vertical line at the middle of the distribution of item weight
+* Fig.1c and 1j shows a strange pattern in the plots. 
+* There's a darker vertical line at the middle of both plots. 
+* Excluding this fact, the relationship between sales and weight is not obvious. 
+* For that mentioned vertical line, we have to investigate further.
+* Follow-up 3 analysis - Fig.1c: Strange vertical line at the middle of the distribution of item weight
 
 Back to our question, the right-skewed distribution of item sales is not explained by item weight, item visibilty nor item retail price. How about we break the distribution of item sales by facet of categorical variables?
 
@@ -245,32 +260,38 @@ Back to our question, the right-skewed distribution of item sales is not explain
 figure1a + facet_wrap(~ Item_Fat_Content) + ggtitle("Fig.1k The Distribution of Item Sales v.s. Item Fat Content")
 figure1a + facet_wrap(~ Item_Type) + ggtitle("Fig.1l The Distribution of Item Sales v.s. Item Type")
 figure1a + facet_wrap(~ Outlet_Identifier) + ggtitle("Fig.1m The Distribution of Item Sales v.s. Outlet ID")
+```
+
+* By plotting item sales against different categorical variables, we still cannot find out the reason accounting for such right-skewed distribution. 
+* We may wonder that either the dataset is insufficient to provide the answer or it is due to coincidence. 
+* From Fig.1k, the shape of distribution is similar. The plot shows there is more low fat item than regular item.
+* From Fig.1m, it reveals something interesting. 
+* Store 010 and store 019 has sales concentrating to the far left, meaning that most of the items in these two stores have low sales performance. 
+* That may account for the right-skewed distribution of the overall item sales. 
+* Yet, by excluding them from the plot, the shape of distribution does not change much. 
+* It can be illustrated by the following plot, Fig.1r.
+
+```{r exclude OUT010 OUT019}
+martdataset_train %>% 
+        filter(Outlet_Identifier != "OUT010", Outlet_Identifier != "OUT019") %>% 
+        ggplot(aes(x = Item_Outlet_Sales)) +
+        geom_histogram(binwidth = 200, color = "white") +
+        xlab("Item Sales") +
+        ggtitle("Fig.1r The Distribution of Item Sales Excluding Store 010 & 019")
+```
+
+```{r}
 figure1a + facet_wrap(~ Outlet_Establishment_Year) + ggtitle("Fig.1n The Distribution of Item Sales v.s. Establishment Year")
 figure1a + facet_wrap(~ Outlet_Size) + ggtitle("Fig.1o The Distribution of Item Sales v.s. Outlet Size")
 figure1a + facet_wrap(~ Outlet_Location_Type) + ggtitle("Fig.1p The Distribution of Item Sales v.s. Outlet Location Type")
 figure1a + facet_wrap(~ Outlet_Type) + ggtitle("Fig.1q The Distribution of Item Sales v.s. Outlet Type")
 ```
 
-By plotting item sales against different categorical variables, we still cannot find out the reason accounting for such right-skewed distribution. We may wonder that either the dataset is insufficient to provide the answer or it is due to coincidence. 
-
-From Fig.1k, the shape of distribution is similar. The plot shows there is more low fat item than regular item.
-
-From Fig.1m, it reveals something interesting. Store 010 and store 019 has sales concentrating to the far left, meaning that most of the items in these two stores have low sales performance. That may account for the right-skewed distribution of the overall item sales. Yet, by excluding them from the plot, the shape of distribution does not change much. It can be illustrated by the following plot, Fig.1r.
-
-```{r exclude OUT010 OUT019}
-martdataset_train %>% 
-        filter(Outlet_Identifier != "OUT010", Outlet_Identifier != "OUT019") %>% 
-        ggplot(aes(x = Item_Outlet_Sales)) +
-        geom_histogram(binwidth = 500, color = "white") +
-        xlab("Item Sales") +
-        ggtitle("Fig.1r The Distribution of Item Sales Excluding Store 010 & 019")
-```
-
-From Fig.1n, there's nothing interesting here. Since we have 10 stores in our dataset and they are correlated with their establishment year, the distribution of item sales against establishment year looks similar to that against stores ID of Fig.1m. This also explains the shape of distribution in Fig.1o, 1p and 1q.
-
-From Fig.1o, there is another counterintuitive fact here, i.e. larger outlet size does not imply higher item sales.
-
-From Fig.1q, the shape of distribution of item sales in grocery items looks familiar to us. We may wonder outlet 010 and outlet 019 belongs to that category. Let's find out:
+* From Fig.1n, there's nothing interesting here. 
+* Since we have 10 stores in our dataset and they are correlated with their establishment year, the distribution of item sales against establishment year looks similar to that against stores ID of Fig.1m. 
+* This also explains the shape of distribution in Fig.1o, 1p and 1q.
+* From Fig.1o, there is another counterintuitive fact here, i.e. larger outlet size does not imply higher item sales.
+* From Fig.1q, the shape of distribution of item sales in grocery items looks familiar to us. We may wonder outlet 010 and outlet 019 belongs to that category. Let's find out:
 
 ```{r oultet 010 019 is grocery}
 martdataset_train %>% 
@@ -279,13 +300,228 @@ martdataset_train %>%
         summarise(count = n())
 ```
 
-####2.1.2 Why the first bin behaves like that?
-####2.1.3 What are the outliers indicate for?
+####2.1.2 What are the outliers indicate for?
+```{r}
+ggplot(data = martdataset_train,
+       aes(x = reorder(Outlet_Identifier, Item_Outlet_Sales, median), y = Item_Outlet_Sales)) +
+        geom_jitter(alpha = 0.08) +
+        geom_boxplot(varwidth = T,show.legend = F, aes(color = Outlet_Identifier), outlier.alpha = 0, size = 0.7) +
+        geom_hline(yintercept = mean(martdataset_train$Item_Outlet_Sales)) + 
+        coord_flip() +
+        ggtitle("Fig.1s The Boxplot of Outlet ID with Item Sales") +
+        xlab("Outlet ID") +
+        ylab("Item Sales")
+```
 
-###2.2 Follow-up of section 2.1
+* From Fig.1s, The vertical line is the mean of the overall item sales
+* Outlet 027 performs the best, is above the average, and contains the toppest four item sales
+* Other outlets' item sales are either around the mean or below it
+* Outlet 010 and outlet 019 (both are grocery stores) have the worst performance in item sales
+* Yet, Their number of items is half of other outlets
+* The above plot can be further supported by the following table:
 
-####2.2.1 Follow-up 1 - Fig.1f: The clustter of item visibility
-####2.2.2 Follow-up 2 - Fig.1h: The clustter of item retail price
+```{r}
+martdataset_train %>% 
+        group_by(Outlet_Identifier) %>% 
+        summarise(count = n(),
+                  sum = sum(Item_Outlet_Sales),
+                  avg = mean(Item_Outlet_Sales),
+                  IQR = IQR(Item_Outlet_Sales)) %>% 
+        arrange(desc(sum))
+```
+
+Any common characteristics of the outliers of each outlets? We have filtered the outliers (i.e. item sales greater than 1.5 * inter-quartile range of item sales) from each outlets. Then compare its distribution with the overall one.
+
+```{r}
+outlet1 <- martdataset_train %>% 
+        filter(Outlet_Identifier == "OUT027") %>% 
+        filter(Item_Outlet_Sales > 1.5*IQR(Item_Outlet_Sales))
+outlet2 <- martdataset_train %>% 
+        filter(Outlet_Identifier == "OUT035") %>%          
+        filter(Item_Outlet_Sales > 1.5*IQR(Item_Outlet_Sales))
+outlet3 <- martdataset_train %>% 
+        filter(Outlet_Identifier == "OUT013") %>%          
+        filter(Item_Outlet_Sales > 1.5*IQR(Item_Outlet_Sales))
+outlet4 <- martdataset_train %>% 
+        filter(Outlet_Identifier == "OUT017") %>%          
+        filter(Item_Outlet_Sales > 1.5*IQR(Item_Outlet_Sales))
+outlet5 <- martdataset_train %>% 
+        filter(Outlet_Identifier == "OUT049") %>%          
+        filter(Item_Outlet_Sales > 1.5*IQR(Item_Outlet_Sales))
+outlet6 <- martdataset_train %>% 
+        filter(Outlet_Identifier == "OUT046") %>%          
+        filter(Item_Outlet_Sales > 1.5*IQR(Item_Outlet_Sales))
+outlet7 <- martdataset_train %>% 
+        filter(Outlet_Identifier == "OUT045") %>%          
+        filter(Item_Outlet_Sales > 1.5*IQR(Item_Outlet_Sales))
+outlet8 <- martdataset_train %>% 
+        filter(Outlet_Identifier == "OUT018") %>%          
+        filter(Item_Outlet_Sales > 1.5*IQR(Item_Outlet_Sales))
+outlet9 <- martdataset_train %>% 
+        filter(Outlet_Identifier == "OUT019") %>%          
+        filter(Item_Outlet_Sales > 1.5*IQR(Item_Outlet_Sales))
+outlet10 <- martdataset_train %>% 
+        filter(Outlet_Identifier == "OUT010") %>% 
+        filter(Item_Outlet_Sales > 1.5*IQR(Item_Outlet_Sales))
+outlet <- rbind(outlet1, outlet2, outlet3, outlet4, outlet5, outlet6, outlet7, outlet8, outlet9, outlet10)
+
+figure1t <- outlet %>% 
+        ggplot(aes(x = Item_MRP)) +
+        geom_histogram(binwidth = 10, color = "white") +
+        xlab("Item Maximum Retail Price") +
+        ggtitle("Fig.1t The Distribution of Item Maximum Retail Price (Outlier)")
+
+grid.arrange(figure1e, figure1t)
+```
+
+* The shape of distribution changed from multiple peaks in Fig.1e to single peak in Fig.1t
+* Fig.1t shows left-skewed distribution, meaning most of the outliers of item sales might be attributed to higher retail price
+
+```{r}
+figure1u <- outlet %>%
+        ggplot(aes(x = Item_Weight)) +
+        geom_histogram(binwidth = 1, color = "white") +
+        xlab("Item Weight") +
+        ggtitle("Fig.1u The Distribution of Item Weight (Outlier)")
+grid.arrange(figure1c, figure1u)
+```
+
+* By comparing Fig.1c and Fig. 1u,tTwo plots are almost identical
+
+```{r}
+figure1v <- outlet %>% 
+        ggplot(aes(x = Item_Visibility)) +
+        geom_histogram(binwidth = 0.01, color = "white") +
+        xlab("Item Visibility") +
+        ggtitle("Fig.1v The Distribution of Item Visibility (Outlier)")
+grid.arrange(figure1d, figure1v)
+```
+
+* By comparing Fig.1d and Fig. 1v, two plots are almost identical
+
+```{r}
+a <- martdataset_train %>% 
+        ggplot(aes(x = Item_Fat_Content)) +
+        geom_bar(aes(fill = Outlet_Identifier), show.legend = F) +
+        facet_wrap(~ Outlet_Identifier) +
+        xlab("Item Fat Content") +
+        ggtitle("Overall")
+b <- outlet %>% 
+        ggplot(aes(x = Item_Fat_Content)) +
+        geom_bar(aes(fill = Outlet_Identifier), show.legend = F) +
+        facet_wrap(~ Outlet_Identifier) +
+        xlab("Item Fat Content") +
+        ggtitle("Outliers")
+grid.arrange(a, b, top = "Fig.1w Distribution of Item Fat Content with Facet of Outlets", nrow = 1)
+```
+
+* Fig.1w shows the distributions are roughly the same
+
+```{r}
+martdataset_train %>% 
+        ggplot(aes(x = reorder_size(Item_Type))) +
+        geom_bar(aes(fill = Outlet_Identifier), show.legend = F) +
+        coord_flip() +
+        facet_wrap(~ Outlet_Identifier, ncol = 3) +
+        xlab("Item Types") +
+        ggtitle("Fig.1x The Distribution of Item Types with Facets of Outlets (Overall)")
+outlet %>% 
+        ggplot(aes(x = reorder_size(Item_Type))) +
+        geom_bar(aes(fill = Outlet_Identifier), show.legend = F) +
+        coord_flip() +
+        facet_wrap(~ Outlet_Identifier, ncol = 3) +
+        xlab("Item Types") +
+        ggtitle("Fig.1y The Distribution of Item Types with Facets of Outlets (Outliers)")
+outlet %>% 
+        filter(Outlet_Identifier == "OUT027") %>% 
+        group_by(Item_Type) %>% 
+        summarise(n = n(),
+                  sales = sum(Item_Outlet_Sales),
+                  avg = mean(Item_Outlet_Sales),
+                  IQR = IQR(Item_Outlet_Sales)) %>% 
+        arrange(desc(sales))
+```
+
+* From the overall distribution in Fig.1x, the most popular item types in each outlets are snack foods and fruits and vegetables. Both of these two types are similar in count.
+* From Fig.1y regarding the outlier data subset, fruits and vegetables are much more than snack foods at some outlets, such as outlet 013, 027, 045, 046
+* Among these four outlets, outlet 027 performs the best in item sales
+* Maybe selling more fruits and vegetables can boost up sales
+
+###2.2 Follow-up analysis
+
+####2.2.1 Follow-up 1 - Fig.1f: The cluster of item visibility
+```{r item visibility cluster reason}
+figure2a <- martdataset_train %>% 
+        ggplot(aes(x = Item_Visibility, fill = Outlet_Identifier)) +
+        geom_histogram(color = "gray", binwidth = 0.01, show.legend = F) +
+        facet_wrap(~Outlet_Identifier) +
+        xlab("Item Visibility") +
+        ggtitle("Fig.2a The Distribution of Item Visibility with Facets of Outlets")
+martdataset_train %>% 
+        filter(Item_Visibility > 0.2) %>% 
+        group_by(Outlet_Identifier) %>% 
+        summarise(Visibility_Greater_Than_0.2 = n())
+figure2b <- martdataset_train %>% 
+        filter(Outlet_Identifier == "OUT010" | Outlet_Identifier == "OUT019") %>% 
+        ggplot(aes(x = Item_Visibility, y = Item_Outlet_Sales)) +
+        geom_point(alpha = 0.2) +
+        geom_smooth() +
+        xlab("Item Visibility") +
+        ylab("Item Sales") +
+        ggtitle("Fig.2b The Relationship between Item Visibility and Item Sales")
+grid.arrange(figure2a, figure2b, ncol = 2)
+```
+
+* From the above plots, only outlet 010 and outlet 019 have item visibility greater than 0.2
+* As we figured out previously, they belongs to grocery store
+* Item visibility of these two outlets does not correlate with their item sales
+* We may wonder that the outlet's physical structure is different between grocery store and supermarket. Such difference may account for the difference of item visibility in the outlets
+* Insufficient data to address the outlet's physical structure
+* The distributions of item visibility in other outlets are similar, i.e. right-skewed
+
+####2.2.2 Follow-up 2 - Fig.1h: The cluster of item retail price
+```{r}
+martdataset_train %>% 
+        ggplot(aes(x = Item_MRP, y = Item_Outlet_Sales)) +
+        geom_point(alpha = 0.1, position = "jitter") +
+        coord_cartesian(ylim = c(0, 1000)) +
+        xlab("Item Retail Price") +
+        ylab("Item Sales") +
+        ggtitle("Fig.2c Zoom In the Distribtuion of Item Retail Price v.s. Item Sales")
+```
+
+* When we zoom in the range of item sales from 0 to 1000, though the plot still shows the tendency of cluster, it's not as obvious as Fig.1h
+
 ####2.2.3 Follow-up 3 - Fig.1c: Strange vertical line at the middle of the distribution of item weight
+```{r item weight facet outlet id}
+martdataset_train %>% 
+        ggplot(aes(x = Item_Weight, fill = Outlet_Identifier)) +
+        geom_histogram(binwidth = 1, color = "white") +
+        facet_wrap(~ Outlet_Identifier) +
+        xlab("Item Weight") +
+        ggtitle("Fig.2d The Distribution of Item Weight")
+```
+
+* From Fig.2d, item weight varies among different items. The distribution of weight of most stores is evenly spread, except outlet 019 and 027
+* The item weight of outlet 019 and 027 forms a vertical line in the plot
+
+```{r item types of 019 027}
+martdataset_train %>% filter(Outlet_Identifier %in% c("OUT019", "OUT027")) %>% 
+        ggplot(aes(x = Item_Type, y = 1, fill = Outlet_Identifier)) +
+        geom_bar(stat = "identity",
+                 position = "fill") +
+        coord_flip() +
+        ylab("") +
+        xlab("Item Types") +
+        ggtitle("Fig.2e The Proportion of Each Item Types in Between Outlet 019 and 027")
+```
+
+* From Fig.2e, both outlet 019 and outlet 027 sells the same types of items of other outlets, but their items' weights are all the same. 
+* We suspect that such fact is due to data entry error because items of different kinds cannot have the same weight.
 
 #3.Insights & Conclusion
+
+* From this dataset, it seems there is no dominant variable directly attribute to the sales.
+* Higher item maximum retail price does contribute to the toppest item sales.
+* There are some outlets performing better item sales. They have the biggest item sales in fruits and vegetables. We may wonder that is due to better display strategy or ther reason which other outlets can model it to boost their sales.
+* The item sales in grocery stores are not competitive to supermarkets.
